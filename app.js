@@ -54,7 +54,6 @@ app.get('/', function(req, res) {
 
     // 클라이언트로부터의 메시지가 수신되면
     socket.on('addVideo', function(videoId) {
-      console.log( "addVideo");
       const itemToFind = rooms[socket.room].list.find(function(item) {
         return item.id === videoId;
       })
@@ -64,11 +63,13 @@ app.get('/', function(req, res) {
         socket.emit('system', "song already added(" + idx + ") ");
         return ;
       }
+      console.log( "try addVideo");
       getYoutubeTitle(videoId, function (err, title) {
         if (title === undefined) {
-          socket.emit('addVideoError', {message: 'No youtube id error'});
+          socket.emit('system', 'No youtube id error');
         }
         else {
+          console.log("add video");
           rooms[socket.room].list.push( { title : title, id: videoId, adder: socket.name })
           socket.emit('system', "[SONG ADDED] `" + title + "` ");
           io.to(socket.room).emit('addVideo', { title : title, id: videoId, adder: socket.name });
