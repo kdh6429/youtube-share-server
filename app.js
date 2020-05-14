@@ -8,7 +8,10 @@ var rooms = {
   "music" : {
     list: [
       {id: "Pg7nBHXQCCA", title: "Red Velvet 레드벨벳 - Psycho @ReVe Festival FINALE", adder : "TEST"}
-    ]
+    ],
+    users: {
+
+    }
   },
   "asfd2" : {
 
@@ -31,7 +34,7 @@ app.get('/', function(req, res) {
       // socket에 클라이언트 정보를 저장한다
       socket.room = data.room;
       socket.name = data.name;
-      socket.emit('join', {name: data.name, room: data.room, list: rooms[ data.room].list});
+      socket.emit('join', {name: data.name, room: data.room, list: rooms[ data.room].list, users: rooms[ data.room].users});
 
       socket.join(data.room);
       //socket.set('room', data.room);
@@ -42,50 +45,67 @@ app.get('/', function(req, res) {
       // io.emit('welcome', data.name );
     });
   
+    
+    socket.on('changeSong', function(index) {
+      console.log( "changeSong");
+      rooms[socket.room].users[socket.name] = index;
+      io.to(socket.room).emit('changeSong', { user: socket.name, songIndex: index });
+    });
+
     // 클라이언트로부터의 메시지가 수신되면
-    socket.on('addVideo', function(data) {
-      getYoutubeTitle(data.videoId, function (err, title) {
+    socket.on('addVideo', function(videoId) {
+      console.log( "addVideo");
+      const itemToFind = rooms[socket.room].list.find(function(item) {
+        return item.id === videoId;
+      })
+      const idx = rooms[socket.room].list.indexOf(itemToFind) 
+      if (idx > -1) 
+      {
+        socket.emit('system', "song already added(" + idx + ") ");
+        return ;
+      }
+      getYoutubeTitle(videoId, function (err, title) {
         if (title === undefined) {
           socket.emit('addVideoError', {message: 'No youtube id error'});
         }
         else {
-          rooms[socket.room].list.push( { title : title, id: data.videoId, adder: socket.name })
+          rooms[socket.room].list.push( { title : title, id: videoId, adder: socket.name })
           socket.emit('system', "[SONG ADDED] `" + title + "` ");
-          io.to(socket.room).emit('addVideo', { title : title, id: data.videoId, adder: socket.name });
+          io.to(socket.room).emit('addVideo', { title : title, id: videoId, adder: socket.name });
         }
       })
     });
+
     // 클라이언트로부터의 메시지가 수신되면
-    socket.on('chat', function(data) {
-      console.log('Message from %s: %s', socket.name, data.msg);
-  
-      var msg = {
-        from: {
-          name: socket.name,
-          userid: socket.userid
-        },
-        msg: data.msg
-      };
-  
-      // 메시지를 전송한 클라이언트를 제외한 모든 클라이언트에게 메시지를 전송한다
-      socket.broadcast.emit('chat', msg);
-  
-      // 메시지를 전송한 클라이언트에게만 메시지를 전송한다
-      // socket.emit('s2c chat', msg);
-  
-      // 접속된 모든 클라이언트에게 메시지를 전송한다
-      // io.emit('s2c chat', msg);
-  
-      // 특정 클라이언트에게만 메시지를 전송한다
-      // io.to(id).emit('s2c chat', data);
+    socket.on('deleteVideo', function(videoId) {
+      const itemToFind = rooms[socket.room].list.find(function(item) {
+        return item.id === videoId && item.adder === socket.name;
+      })
+      const idx = rooms[socket.room].list.indexOf(itemToFind) 
+      if (idx > -1) 
+      {
+        rooms[socket.room].list.splice(idx, 1)
+        socket.emit('system', "[SONG DELETED]");
+        io.to(socket.room).emit('deleteVideo', {id: videoId});
+      }
+      else {
+        socket.emit('system', "not owner error");
+      }
     });
   
+
     // force client disconnect from server
     socket.on('forceDisconnect', function() {
       socket.disconnect();
     })
-  
     socket.on('disconnect', function() {
+      console.log( "disconnect");
+      io.to(socket.room).emit('deleteUser', socket.name);
+
+      if (rooms[socket.room] && rooms[socket.room].users[socket.name]) {
+        delete rooms[socket.room].users[socket.name];
+      }
+     
       console.log('user disconnected: ' + socket.name);
     });
   });
