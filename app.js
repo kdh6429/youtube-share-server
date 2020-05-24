@@ -1,4 +1,4 @@
-var getYoutubeTitle = require('get-youtube-title')
+var parser = require('youtube-meta-parser')
 var app = require('express')();
 var server = require('http').createServer(app);
 // http server를 socket.io server로 upgrade한다
@@ -29,8 +29,6 @@ app.get('/', function(req, res) {
   
     // 접속한 클라이언트의 정보가 수신되면
     socket.on('init', function(data) {
-      console.log('Client logged-in: ' + data.name);
-  
       // socket에 클라이언트 정보를 저장한다
       socket.room = data.room;
       socket.name = data.name;
@@ -63,18 +61,19 @@ app.get('/', function(req, res) {
         socket.emit('system', "song already added(" + idx + ") ");
         return ;
       }
-      console.log( "try addVideo");
-      getYoutubeTitle(videoId, function (err, title) {
+      parser.getMetadata(videoId).then( function(metadata) {
+        const title = metadata['videoDetails']['title'];
         if (title === undefined) {
           socket.emit('system', 'No youtube id error');
         }
         else {
-          console.log("add video");
           rooms[socket.room].list.push( { title : title, id: videoId, adder: socket.name })
           socket.emit('system', "[SONG ADDED] `" + title + "` ");
           io.to(socket.room).emit('addVideo', { title : title, id: videoId, adder: socket.name });
         }
-      })
+      }).catch((error)=>{
+        socket.emit('system', error);
+      });
     });
 
     // 클라이언트로부터의 메시지가 수신되면

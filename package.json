@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "4.17.1",
-    "get-youtube-title": "^1.0.0",
-    "socket.io": "2.3.0"
+    "socket.io": "2.3.0",
+    "youtube-meta-parser": "^1.0.3"
   }
 }
