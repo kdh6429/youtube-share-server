@@ -3,6 +3,7 @@ var app = require('express')();
 var server = require('http').createServer(app);
 // http server를 socket.io server로 upgrade한다
 var io = require('socket.io')(server);
+var urlParser = require('js-video-url-parser')
 
 var rooms = {
   "music" : {
@@ -51,6 +52,9 @@ app.get('/', function(req, res) {
 
     // 클라이언트로부터의 메시지가 수신되면
     socket.on('addVideo', function(videoId) {
+      if(videoId.indexOf('http') !== -1) {
+        videoId = urlParser.parse(videoId).id
+      }
       const itemToFind = rooms[socket.room].list.find(function(item) {
         return item.id === videoId;
       })
@@ -98,14 +102,12 @@ app.get('/', function(req, res) {
       socket.disconnect();
     })
     socket.on('disconnect', function() {
-      console.log( "disconnect");
       io.to(socket.room).emit('deleteUser', socket.name);
 
       if (rooms[socket.room] && rooms[socket.room].users[socket.name]) {
         delete rooms[socket.room].users[socket.name];
       }
      
-      console.log('user disconnected: ' + socket.name);
     });
   });
   
