@@ -45,7 +45,6 @@ app.get('/', function(req, res) {
   
     
     socket.on('changeSong', function(index) {
-      console.log( "changeSong");
       rooms[socket.room].users[socket.name] = index;
       io.to(socket.room).emit('changeSong', { user: socket.name, songIndex: index });
     });
