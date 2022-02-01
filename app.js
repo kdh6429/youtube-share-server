@@ -19,18 +19,14 @@ var rooms = {
   }
 }
 
-// localhost:3000으로 서버에 접속하면 클라이언트로 index.html을 전송한다
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
   });
   
   // connection event handler
-  // connection이 수립되면 event handler function의 인자로 socket인 들어온다
   io.on('connection', function(socket) {
   
-    // 접속한 클라이언트의 정보가 수신되면
     socket.on('init', function(data) {
-      // socket에 클라이언트 정보를 저장한다
       socket.room = data.room;
       socket.name = data.name;
       socket.emit('join', {name: data.name, room: data.room, list: rooms[ data.room].list, users: rooms[ data.room].users});
@@ -40,7 +36,6 @@ app.get('/', function(req, res) {
       
       // socket.to(data.room).emit('system', { message : data.name + '님이 접속하셨습니다.' });
 
-      // 접속된 모든 클라이언트에게 메시지를 전송한다
       // io.emit('welcome', data.name );
     });
   
@@ -50,7 +45,6 @@ app.get('/', function(req, res) {
       io.to(socket.room).emit('changeSong', { user: socket.name, songIndex: index });
     });
 
-    // 클라이언트로부터의 메시지가 수신되면
     socket.on('addVideo', function(videoId) {
       if(videoId.indexOf('http') !== -1) {
         videoId = urlParser.parse(videoId).id
@@ -79,7 +73,6 @@ app.get('/', function(req, res) {
       });
     });
 
-    // 클라이언트로부터의 메시지가 수신되면
     socket.on('deleteVideo', function(videoId) {
       const itemToFind = rooms[socket.room].list.find(function(item) {
         return item.id === videoId && item.adder === socket.name;
